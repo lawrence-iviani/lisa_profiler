@@ -1,0 +1,11 @@
+Metadata-Version: 1.2
+Name: lisa-profiler
+Version: 0.0.1
+Summary: A collection of scripts for profiling LISA leveraging the ROS middleware bus
+Home-page: UNKNOWN
+Author: 
+Maintainer: osboxes
+Maintainer-email: lawrence.iviani@gmail.com
+License: MIT
+Description: UNKNOWN
+Platform: UNKNOWN
