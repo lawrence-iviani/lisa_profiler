@@ -19,11 +19,12 @@ example from https://github.com/spatialaudio/python-sounddevice/blob/0.4.1/examp
 import argparse
 import queue
 import sys
-# todo: replace with ros sleep
-from time import sleep
 
-from lisa_profiler import AudioParametersStruct, run_file_test,  query_devices, load_from_json_file, ros_init
-
+from lisa_profiler import run_file_test
+from lisa_profiler.audio import query_devices, AudioParametersStruct
+from lisa_profiler.json import load_from_json_file
+from lisa_profiler.ros import ros_init, ros_start_lisa_rosbag, ros_stop_lisa_rosbag
+#from lisa_profiler._helper import _print_debug
 
 def int_or_str(text):
 	"""Helper function for argument parsing."""
@@ -73,7 +74,11 @@ if __name__ == "__main__":
 		json_tests_list = load_from_json_file(args.filename)
 		ros_publishers_dict = ros_init()
 		print("Loaded " + str(len(json_tests_list)) + " test items...\nStarting test")
+		rosbag_proc = ros_start_lisa_rosbag()
+		print("Started rosbag process: " + str(rosbag_proc) + "\nStarting test")
 		run_file_test(json_tests_list, audio_params, ros_publishers_dict)
+		print("Test Terminated, stoping rosbag process: " + str(rosbag_proc))
+		ros_stop_lisa_rosbag(rosbag_proc)
 	except KeyboardInterrupt:
 		parser.exit('\nInterrupted by user')
 	except Exception as e:

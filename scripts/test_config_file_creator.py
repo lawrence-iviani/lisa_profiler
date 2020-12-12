@@ -5,7 +5,7 @@ Can be used by player and others
 Run as normal script (not really in the ROS environment)
 '''
 import argparse
-from lisa_profiler import get_test_token, save_to_json_file
+from lisa_profiler.json import get_test_token, save_to_json_file
 
 
 if __name__ == "__main__": 
