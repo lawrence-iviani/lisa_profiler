@@ -24,7 +24,9 @@ from lisa_profiler import run_file_test
 from lisa_profiler.audio import query_devices, AudioParametersStruct
 from lisa_profiler.json import load_from_json_file
 from lisa_profiler.ros import ros_init, ros_start_lisa_rosbag, ros_stop_lisa_rosbag
+from time import sleep
 #from lisa_profiler._helper import _print_debug
+
 
 def int_or_str(text):
 	"""Helper function for argument parsing."""
@@ -63,7 +65,10 @@ if __name__ == "__main__":
 	parser.add_argument(
 		'-q', '--buffersize', type=int, default=20,
 		help='number of blocks used for buffering (default: %(default)s)')
+	parser.add_argument('-r', '--rosbag', default=False, action='store_true', 
+						help='save a rosbag file in the actual folder  (default: %(default)s)')
 	args = parser.parse_args(remaining)
+	# print(args.rosbag)
 	if args.blocksize == 0:
 		parser.error('blocksize must not be zero')
 	if args.buffersize < 1:
@@ -74,11 +79,17 @@ if __name__ == "__main__":
 		json_tests_list = load_from_json_file(args.filename)
 		ros_publishers_dict = ros_init()
 		print("Loaded " + str(len(json_tests_list)) + " test items...\nStarting test")
-		rosbag_proc = ros_start_lisa_rosbag()
-		print("Started rosbag process: " + str(rosbag_proc) + "\nStarting test")
+		if args.rosbag:
+			rosbag_proc = ros_start_lisa_rosbag()
+			print("Started rosbag process: " + str(rosbag_proc))	
+		print("Starting test")	
 		run_file_test(json_tests_list, audio_params, ros_publishers_dict)
-		print("Test Terminated, stoping rosbag process: " + str(rosbag_proc))
-		ros_stop_lisa_rosbag(rosbag_proc)
+		print("Test Terminated") 
+		sleep(3)
+		if 	args.rosbag:
+			print("stoping rosbag process: " + str(rosbag_proc))
+			ros_stop_lisa_rosbag(rosbag_proc)
+		print("Exit") 
 	except KeyboardInterrupt:
 		parser.exit('\nInterrupted by user')
 	except Exception as e:

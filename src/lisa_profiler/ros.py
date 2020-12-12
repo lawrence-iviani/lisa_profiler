@@ -23,13 +23,13 @@ def ros_init():
 def ros_start_lisa_rosbag(folder="/home/pi", filename="", topics = DEFAULT_TOPICS):
 	assert isinstance(topics, list)
 	if filename is None or len(filename)==0:
-		filename = os.path.join(folder, datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S_LISA_Rosbag.bag"))
-#		filename = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S_LISA_Rosbag.bag")
+#		filename = os.path.join(folder, datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S_LISA_Rosbag.bag"))
+		filename = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S_LISA_Rosbag.bag")
 
 	cmd = ["rosbag", "record", "-O",  '__name:=lisa_bag', filename]
 	print(cmd + topics)
 	proc = subprocess.Popen(cmd + topics)
-
+	rospy.sleep(3.0) # wait the record to start, a subscription to a topics should be  a better option
 	return proc
 
 
