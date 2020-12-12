@@ -7,28 +7,46 @@ import json
 import os.path
 import queue
 import threading
+import rospy
 
 # only temporary for debug
 from datetime import datetime
 
+
+########################
+### Data Definitions ###
+########################
 AudioParametersStruct = namedtuple('AudioParametersStruct', ['device', 'buffersize', 'blocksize'])
 
 
-def query_devices():
-	return sd.query_devices()
+#################
+### Constants ###
+#################
+DEFAULT_PAUSE_BEFORE = 0.0 # silence before in sec.
+DEFAULT_PAUSE_AFTER = 0.75 # silence after in sec. 
+
+
+#################
+### Functions ###
+#################
 
 def _print_debug(msg='', function="", intent_level=0):
 	#datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 	msg = "[" + datetime.utcnow().strftime('%M:%S.%f')[:-3] + "]"+ intent_level * '\t' + function + "> " + msg
 	print(msg, file=sys.stderr)
+
+
+########### AUDIO ###########
+def query_devices():
+	return sd.query_devices()
 	
 
-def read_file_and_play(filename, audio_params, buffer_queue_size): #, data_queue, event):
+def read_file_and_play(filename, audio_params): #, data_queue, event):
 	IntenalStruct = namedtuple('IntenalStruct', ['max_retry', 'already_exiting' ])
 	# need to share with the play_callback
 	global data_queue, event, sample_per_block, duration_per_block, latency
 	
-	data_queue = queue.Queue(maxsize=buffer_queue_size)
+	data_queue = queue.Queue(maxsize=audio_params.buffersize)
 	event = threading.Event()
 
 	# these are init later
@@ -37,8 +55,11 @@ def read_file_and_play(filename, audio_params, buffer_queue_size): #, data_queue
 	duration_per_block = 1 
 	latency = 0
 
-
 	def play_callback(outdata, frames, time, status):
+		'''
+		Callback called by the system for audio reproduction
+		Takes the data from the internal data_queue and ship to the sound card
+		'''
 		#_print_debug(function='play_callback', intent_level=2, msg='ENTER --- time={}, frames_to_play={} - status=>{}<'.format(time, frames, status))
 		assert frames == audio_params.blocksize, "Mismatch in frames number (received {} frames) expected are {}".format(frames, audio_params.blocksize)
 		if status.output_underflow:
@@ -111,10 +132,11 @@ def read_file_and_play(filename, audio_params, buffer_queue_size): #, data_queue
 		# update the value of duration per block, it is used in the callback
 		sample_per_block = round(stream.blocksize / (stream.channels * stream.samplesize))
 		duration_per_block = sample_per_block /  stream.samplerate
-		latency = stream.latency# / 2.0 # latgency of the output, roughly half
+		latency = stream.latency  # latency of the output
 		_print_debug(function='read_file_and_play', msg="Output Audio Stream opened: {} - device={} sr={}Hz,blocksize={},n_channels={},samplesize={} ".format(
 						stream, audio_params.device, stream.samplerate, stream.blocksize, stream.channels, stream.samplesize))
-		_print_debug(function='read_file_and_play', msg="stream data block length: {} samples - {} sec. - latency = {}".format(sample_per_block, duration_per_block, latency))
+		_print_debug(function='read_file_and_play', msg="stream data block length: {} samples - {} sec. - latency = {}".format(
+						sample_per_block, duration_per_block, latency))
 		try:
 			with stream:
 				timeout = audio_params.blocksize * audio_params.buffersize/ _file_chunk_size / f.samplerate
@@ -128,7 +150,8 @@ def read_file_and_play(filename, audio_params, buffer_queue_size): #, data_queue
 					#_print_debug(function='read_file_and_play', msg="stream from file data obj: {} - len {} bytes".format(data, len(data[:]) ))
 					time_chunk = _duration_file * len(data[:])/f.frames / _file_chunk_size
 					_total_file_read_sec += time_chunk				
-					_print_debug(function='read_file_and_play', msg="stream from file data chunk: {} len is {} sec., total read is {} sec.".format(data, time_chunk, _total_file_read_sec ))
+					_print_debug(function='read_file_and_play', msg="stream from file data chunk: {} len is {} sec., total read is {} sec.".format(
+									data, time_chunk, _total_file_read_sec ))
 					try:
 						data_queue.put(data, timeout=timeout)
 					except queue.Full as e:
@@ -145,11 +168,47 @@ def read_file_and_play(filename, audio_params, buffer_queue_size): #, data_queue
 			raise e
 
 
-DEFAULT_PAUSE_BEFORE = 0.0 # silence before in sec.
-DEFAULT_PAUSE_AFTER = 0.75 # silence after in sec. 
+########### RUN TEST ###########
+def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
+
+	def _run_test(filename, pause_before, pause_after, audio_params, rosmsg_before=None, rosmsg_after=None):
+
+		# 1. Pause before		
+		_print_debug(function='run_file_test', msg="sleeping BEFORE for {} sec.".format(pause_before ))
+		rospy.sleep(pause_before)
+
+		# 2. Signal before, play file and signal after
+		_print_debug(function='run_file_test', msg="Play file {}".format(filename))
+		if rosmsg_before is not None:
+			 rosmsg_before.publish()
+		read_file_and_play(filename, audio_params)
+		if rosmsg_after is not None:
+			 rosmsg_after.publish()
+
+		# 3. Pause after
+		_print_debug(function='run_file_test', msg="sleeping AFTER for {} sec.".format(pause_after ))
+		rospy.sleep(pause_before)
+		
+	for t in json_tests_list:
+		_print_debug(function='run_file_test', msg="===== START TEST ITEM ====\n=============================\n")
+		# wakeup
+		_print_debug(function='run_file_test', msg="===== WAKEUP ====")
+		_run_test(t['wakeup']['filename'], t['wakeup']['pause_before'], t['wakeup']['pause_after'], 
+					audio_params, ros_publishers_dict['pub_start_wakeup'], ros_publishers_dict['pub_stop_wakeup'])
+		
+		# intent
+		_print_debug(function='run_file_test', msg="\n===== INTENT ====")
+		_run_test(t['intent']['filename'], t['intent']['pause_before'], t['intent']['pause_after'], 
+					audio_params, ros_publishers_dict['pub_start_intent'], ros_publishers_dict['pub_stop_intent'])
+
+		_print_debug(function='run_file_test', msg="===== END TEST ITEM ====\n=============================\n")
 
 
+########### JSON ###########
 def get_wakeup_token(wave_folder, args):
+	'''
+	Helper function for create a dict representing a wakeup token of the test
+	'''
 	ret_dict = {'filename':  '',
 				'expected_wakeup_word': '', 
 				'pause_before': DEFAULT_PAUSE_BEFORE, 
@@ -163,6 +222,9 @@ def get_wakeup_token(wave_folder, args):
 
 
 def get_intent_token(wave_folder, args):
+	'''
+	Helper function for create a dict representing an intent token of the test
+	'''
 	ret_dict = {'filename':  '',
 				'expected_intents': [], 
 				'pause_before': DEFAULT_PAUSE_BEFORE, 
@@ -178,7 +240,9 @@ def get_intent_token(wave_folder, args):
 
 
 def get_test_token(wave_folder, args_wakeup, args_intent):
-	print(args_wakeup)
+	'''
+	Helper function for create a dict representing one token of the test
+	'''
 	return {'wakeup': get_wakeup_token(wave_folder, args_wakeup), 
 			'intent': get_intent_token(wave_folder, args_intent)}
 
@@ -186,4 +250,27 @@ def get_test_token(wave_folder, args_wakeup, args_intent):
 def get_json_test_token(wave_folder, args_wakeup, args_intent):
 	return json.dumps(get_test_token(wave_folder, args_wakeup, args_intent))
 
-	
+
+def save_to_json_file(filename, json_tests_list):
+	with open(filename, 'w') as outfile:
+		json.dump(json_tests_list, outfile)
+
+
+def load_from_json_file(filename):
+	with open(filename, 'r') as infile:
+		data = json.load(infile)
+	# TODO: here some check should be performed
+	return data
+
+
+########### ROS ###########
+from std_msgs.msg import Empty
+def ros_init():
+	ret_dict = {}
+	ret_dict['pub_start_wakeup'] = rospy.Publisher('start_wakeup', Empty, queue_size=10)
+	ret_dict['pub_stop_wakeup'] = rospy.Publisher('stop_wakeup', Empty, queue_size=10)
+	ret_dict['pub_start_intent'] = rospy.Publisher('start_intent', Empty, queue_size=10)
+	ret_dict['pub_stop_intent'] = rospy.Publisher('stop_intent', Empty, queue_size=10)
+	rospy.init_node('lisa_profiler', anonymous=True)
+	return ret_dict
+

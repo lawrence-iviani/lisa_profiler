@@ -16,15 +16,13 @@ example from https://github.com/spatialaudio/python-sounddevice/blob/0.4.1/examp
 
 """
 
-from lisa_profiler import AudioParametersStruct, read_file_and_play,  query_devices
-from lisa_profiler import get_test_token
-
-
 import argparse
 import queue
 import sys
 # todo: replace with ros sleep
 from time import sleep
+
+from lisa_profiler import AudioParametersStruct, run_file_test,  query_devices, load_from_json_file, ros_init
 
 
 def int_or_str(text):
@@ -62,53 +60,20 @@ if __name__ == "__main__":
 		'-b', '--blocksize', type=int, default=2048,
 		help='block size (default: %(default)s)')
 	parser.add_argument(
-		'-q', '--buffersize', type=int, default=15,
+		'-q', '--buffersize', type=int, default=20,
 		help='number of blocks used for buffering (default: %(default)s)')
 	args = parser.parse_args(remaining)
 	if args.blocksize == 0:
 		parser.error('blocksize must not be zero')
 	if args.buffersize < 1:
 		parser.error('buffersize must be at least 1')
-
 	
 	audio_params = AudioParametersStruct( device=args.device, buffersize=args.buffersize, blocksize=args.blocksize)
-	# open instead of this snippet creating from: args.filename
-	json_tests_list = []
-	json_tests_list.append(get_test_token(wave_folder='/media/sf_Thesis/test track', 
-								   args_wakeup={'expected_wakeup_word': 'snowboy', 'filename': 'snowboy_test_1.wav'}, # 'long.wav'}, # 'snowboy_test_1.wav'}, 
-								   args_intent={'expected_intents': ['set_acceleration'], 'filename': 'intent_test_1.wav'}))
-	json_tests_list.append(get_test_token(wave_folder='/media/sf_Thesis/test track', 
-								   args_wakeup={'expected_wakeup_word': 'snowboy', 'filename': 'snowboy_test_2.wav'}, 
-								   args_intent={'expected_intents': ['set_acceleration'], 'filename': 'intent_test_2.wav'}))
-
-	def _run_test(filename, pause_before, pause_after, buffersize):
-		
-		print("sleeping BEFORE for {} sec.".format(pause_before ))
-		sleep(pause_before)
-		
-		# TODO: emit ros message start wakeup reproduction
-		print("Play file {}".format(filename))
-		read_file_and_play(filename, audio_params, buffer_queue_size=buffersize )
-		
-		# TODO: wakeup expected, emit ros message end wakeup reproduction
-		print("sleeping AFTER for {} sec.".format(pause_after ))
-		sleep(pause_after)
-
-
 	try:
-		for t in json_tests_list:
-			print("===== START TEST ITEM ====\n=============================\n")
-			# wakeup
-			print("===== WAKEUP ====")
-			_run_test(t['wakeup']['filename'], t['wakeup']['pause_before'], t['wakeup']['pause_after'], args.buffersize)
-			# sleep(2)
-
-			#####
-			print("\n===== INTENT ====")
-			_run_test(t['intent']['filename'], t['intent']['pause_before'], t['intent']['pause_after'], args.buffersize)
-
-			print("===== END TEST ITEM ====\n=============================\n")
-
+		json_tests_list = load_from_json_file(args.filename)
+		ros_publishers_dict = ros_init()
+		print("Loaded " + str(len(json_tests_list)) + " test items...\nStarting test")
+		run_file_test(json_tests_list, audio_params, ros_publishers_dict)
 	except KeyboardInterrupt:
 		parser.exit('\nInterrupted by user')
 	except Exception as e:
