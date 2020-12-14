@@ -19,6 +19,7 @@ example from https://github.com/spatialaudio/python-sounddevice/blob/0.4.1/examp
 import argparse
 import queue
 import sys
+import rospy
 
 from lisa_profiler import run_file_test
 from lisa_profiler.audio import query_devices, AudioParametersStruct
@@ -65,7 +66,7 @@ if __name__ == "__main__":
 	parser.add_argument(
 		'-q', '--buffersize', type=int, default=20,
 		help='number of blocks used for buffering (default: %(default)s)')
-	parser.add_argument('-r', '--rosbag', default=False, action='store_true', 
+	parser.add_argument('-r', '--rosbag', default=False, action='store_true',
 						help='save a rosbag file in the actual folder  (default: %(default)s)')
 	args = parser.parse_args(remaining)
 	# print(args.rosbag)
@@ -73,25 +74,31 @@ if __name__ == "__main__":
 		parser.error('blocksize must not be zero')
 	if args.buffersize < 1:
 		parser.error('buffersize must be at least 1')
-	
-	audio_params = AudioParametersStruct( device=args.device, buffersize=args.buffersize, blocksize=args.blocksize)
-	try:
-		json_tests_list = load_from_json_file(args.filename)
-		ros_publishers_dict = ros_init()
-		print("Loaded " + str(len(json_tests_list)) + " test items...\nStarting test")
-		if args.rosbag:
-			rosbag_proc = ros_start_lisa_rosbag()
-			print("Started rosbag process: " + str(rosbag_proc))	
-		print("Starting test")	
-		run_file_test(json_tests_list, audio_params, ros_publishers_dict)
-		print("Test Terminated") 
-		sleep(3)
-		if 	args.rosbag:
-			print("stoping rosbag process: " + str(rosbag_proc))
-			ros_stop_lisa_rosbag(rosbag_proc)
-		print("Exit") 
-	except KeyboardInterrupt:
-		parser.exit('\nInterrupted by user')
-	except Exception as e:
-		parser.exit('\nError catched: ' + type(e).__name__ + ': ' + str(e))
 
+	ros_publishers_dict = ros_init()
+	def _run_work(args, ros_publishers_dict):
+		audio_params = AudioParametersStruct( device=args.device, buffersize=args.buffersize, blocksize=args.blocksize)
+		try:
+			json_tests_list = load_from_json_file(args.filename)
+
+			print("Loaded " + str(len(json_tests_list)) + " test items...\nStarting test")
+			if args.rosbag:
+				rosbag_proc = ros_start_lisa_rosbag()
+				print("Started rosbag process: " + str(rosbag_proc))
+			print("Starting test")
+			run_file_test(json_tests_list, audio_params, ros_publishers_dict)
+			print("Test Terminated")
+
+			if 	args.rosbag:
+				print("stoping rosbag process: " + str(rosbag_proc))
+				sleep(3) # Give time to all messages to be processed etc. (Use rospy.sleep instead??)		
+				ros_stop_lisa_rosbag(rosbag_proc)
+			print("Exit")
+		except KeyboardInterrupt:
+			parser.exit('\nInterrupted by user')
+		except Exception as e:
+			parser.exit('\nError catched: ' + type(e).__name__ + ': ' + str(e))
+	import threading
+	#threading.Thread(target=_run_work, args=(args,ros_publishers_dict)).start()
+	_run_work(args, ros_publishers_dict)
+	#rospy.spin()
