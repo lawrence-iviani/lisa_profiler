@@ -1,13 +1,8 @@
-
-
-#import sys
-#from datetime import datetime
 import rospy
-
-from .audio import sd
-from .audio import read_file_and_play
-from ._helper import _print_debug
 from transitions.core import MachineError
+import pandas as pd
+import numpy as np
+
 
 #################
 ### Constants ###
@@ -17,7 +12,7 @@ DEFAULT_PAUSE_AFTER = 0.75 # silence after in sec.
 TAG_MSG_WAKEUP = "wakeup"
 TAG_MSG_INTENTS = "intents"
 
-# TPC Topics
+# TPC, Topics. Used for publish topic in player and detect in rosbags
 TPC_WAKEUP_START = 'start_wakeup'
 TPC_WAKEUP_STOP = 'stop_wakeup'
 TPC_WAKEUP_IDENTIFIED = 'lisa/waked_up'
@@ -29,10 +24,29 @@ TPC_INTENT_NOT_IDENTIFIED = 'lisa/not_recognized'
 
 TPC_TEXT_CAPTURED = 'lisa/text_captured'
 
+# Topics that are processed
 DEFAULT_TOPICS = [TPC_WAKEUP_START, TPC_WAKEUP_STOP, TPC_WAKEUP_IDENTIFIED,
 				  TPC_INTENT_START, TPC_INTENT_STOP, TPC_INTENT_IDENTIFIED, TPC_INTENT_NOT_IDENTIFIED,
 				  TPC_TEXT_CAPTURED]
 
+INVALID_VALUE = np.nan
+
+##########################
+### Init local library ###
+##########################
+from .audio import sd
+from .audio import read_file_and_play
+from ._helper import _print_debug
+from .wakeup_test_processing import wake_up_test_model
+
+# The outcome analised results will be provided classifeid in this form
+# Check in wake_up_test_model for other values
+RESULT_TAGS = [wake_up_test_model.WAKEUP_DETECTED,
+			   wake_up_test_model.WAKEUP_NOT_DETECTED,
+			   wake_up_test_model.TEXT_TRANSCRIPTED,
+			   wake_up_test_model.INTENT_RECOGNIZED,
+			   wake_up_test_model.INTENT_WRONG_RECOGNIZED,
+		 	   wake_up_test_model.INTENT_NOT_RECOGNIZED]
 
 #################
 ### Functions ###
@@ -50,10 +64,10 @@ def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
 		# 2. Signal before, play file and signal after
 		_print_debug(function='run_file_test', msg="Play file {}".format(filename))
 		if rosmsg_before is not None:
-			 rosmsg_before.publish("Start " + filename + "\t" + msg_tag)
+			 rosmsg_before.publish("Start " + msg_tag + "\t" + filename)
 		read_file_and_play(filename, audio_params)
 		if rosmsg_after is not None:
-			 rosmsg_after.publish("Stop "+ filename + "\t" + msg_tag)
+			 rosmsg_after.publish("Stop " + msg_tag + "\t" + filename)
 
 		# 3. Pause after
 		_print_debug(function='run_file_test', msg="sleeping AFTER for {} sec.".format(pause_after ))
@@ -120,9 +134,10 @@ def _get_data_from_topic(topic, pd_serie):
 		#print(data_name,":" ,ret_dict[data_name], end=" --- ")
 	return ret_dict
 
-def analyse_df(df):
-	from .wakeup_test_processing import wake_up_test_model
-	print(wake_up_test_model.state)
+
+def analyse_df(df, result_tags_list=RESULT_TAGS):
+
+
 	for n, r in enumerate(df.iterrows()):
 		sm_data = {}
 		data = r[1] # get the row as tuple timestamp, topic, payload
@@ -156,6 +171,7 @@ def analyse_df(df):
 				transitions_has_happened = False
 		except MachineError as e:
 			print("Transition[{}] {} FAILED: {} ".format(str(sm_data['transition']), sm_data['topic'] , e))
+			wake_up_test_model.reset(data=sm_data)
 			transitions_has_happened = False
 		# just check!
 		if enter_state!=wake_up_test_model.state:
@@ -163,23 +179,42 @@ def analyse_df(df):
 		elif transitions_has_happened:
 			print("\tInternal Transition from {} ---> to {}".format(enter_state, wake_up_test_model.state))
 		else:
-			print('\tErro or no transition available, remainaning in state ' + enter_state)
+			print('\tError or no transition available, remainaning in state ' + enter_state)
 
 		print('=======================')
 
-import pandas as pd
-import numpy as np
-def run_process_bag(df): # pandas dataframe
+	#dict_tagged_results = {key: list() for key in result_tags_list}
+	dict_tagged_results = {key: dict() for key in result_tags_list}
+	for transition_id, result in wake_up_test_model.get_all_results().items():
+		#{'transition_6': {'outcome': 'TEXT ACQUIRED', 'wakeup_time': 0.1695864200592041, 'stt_time': 3.7553460597991943, 'intent_recognition_time': 'NaN'},
+		if result['outcome'] in result_tags_list:
+			k = result['outcome']
+			# v = {transition_id: result}
+			# print("++++\nAdding transition: {} --- {} \n++++".format(k, v))
+			# dict_tagged_results[k].append(v)    # [transition_id] = result
+			print("++++\nAdding transition: {} transition {} --- {} \n++++".format(k, transition_id, result))
+			dict_tagged_results[k][transition_id] = result    # [transition_id] = result
+
+	# transform dict in pandas df
+	pd_tagged_results = {}
+	for outcome, transitions in  dict_tagged_results.items():
+		#print(transitions)
+		data_frame = pd.DataFrame(transitions)
+		pd_tagged_results[outcome] = data_frame.dropna(axis=0, how='all')
+		#pd_tagged_results[outcome]#axis=0, how='any') # drop a row if all are NaN
+		# print(pd.DataFrame(transitions))
+	return pd_tagged_results
+
+
+
+def run_process_bag(df, topics=DEFAULT_TOPICS): # pandas dataframe
 	df_notnull = df.notnull()
 	datas = {'timestamp': [], 'topic': [], 'payload': [] }
 	for n, r in enumerate(df.iterrows()):
-		#print("hasattr(lisa/text_captured/text): " + str(hasattr(r, "lisa/text_captured/text")))
-		#for t in DEFAULT_TOPICS:
-		#	 if df.
 		not_null_idxs = list(np.where(df_notnull.iloc[n]==True)[0]) # Get only the valid value in row n
 		ts = r[0]
 		pd_serie = r[1].iloc[not_null_idxs] #__class__
-		topic = _check_for_topic(pd_serie, DEFAULT_TOPICS)
+		topic = _check_for_topic(pd_serie, topics)
 		# _print_debug(function='run_process_bag', msg="Decoding topic {}".format(topic))
 		if topic is None:
 			_print_debug(function='run_process_bag', msg="Cannot find a valid topic for line {} - data: ".format(n, pd_serie))

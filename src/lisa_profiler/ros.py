@@ -9,17 +9,17 @@ from std_msgs.msg import String
 
 ########### CONSTANTS ###########
 #from lisa_profiler import DEFAULT_TOPICS
-from . import DEFAULT_TOPICS
+from . import DEFAULT_TOPICS, TPC_WAKEUP_START, TPC_WAKEUP_STOP, TPC_INTENT_START, TPC_INTENT_STOP
 ROS_QUEUE_SIZE = 5
 
 
 ########### ROS ###########
 def ros_init():
 	ret_dict = {}
-	ret_dict['pub_start_wakeup'] = rospy.Publisher('start_wakeup', String, queue_size=ROS_QUEUE_SIZE)
-	ret_dict['pub_stop_wakeup'] = rospy.Publisher('stop_wakeup', String, queue_size=ROS_QUEUE_SIZE)
-	ret_dict['pub_start_intent'] = rospy.Publisher('start_intent', String, queue_size=ROS_QUEUE_SIZE)
-	ret_dict['pub_stop_intent'] = rospy.Publisher('stop_intent', String, queue_size=ROS_QUEUE_SIZE)
+	ret_dict['pub_start_wakeup'] = rospy.Publisher(TPC_WAKEUP_START, String, queue_size=ROS_QUEUE_SIZE)
+	ret_dict['pub_stop_wakeup'] = rospy.Publisher(TPC_WAKEUP_STOP, String, queue_size=ROS_QUEUE_SIZE)
+	ret_dict['pub_start_intent'] = rospy.Publisher(TPC_INTENT_START, String, queue_size=ROS_QUEUE_SIZE)
+	ret_dict['pub_stop_intent'] = rospy.Publisher(TPC_INTENT_STOP, String, queue_size=ROS_QUEUE_SIZE)
 	rospy.init_node('lisa_profiler', anonymous=True)
 	return ret_dict
 

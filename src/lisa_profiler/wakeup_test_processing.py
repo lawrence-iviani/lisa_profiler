@@ -1,6 +1,5 @@
 from transitions import Machine
-
-INVALID_VALUE = "NaN"
+from . import INVALID_VALUE
 
 states=['wait_wakeup', 'wait_text', 'wait_intent']
 
@@ -37,8 +36,10 @@ transitions = [
 
     # From these states is legal go back to wait_wake up. The test has been succesful for
     # missed wake up, both are needed
-    { 'trigger': 'intent_playback_started', 'source': 'wait_wakeup', 'dest': 'wait_wakeup'}, #, 'before': 'set_wakeup_playback_started'},
-    { 'trigger': 'intent_playback_stopped', 'source': 'wait_wakeup', 'dest': 'wait_wakeup'},
+    #{ 'trigger': 'intent_playback_started', 'source': 'wait_wakeup', 'dest': 'wait_wakeup'},
+    #{ 'trigger': 'intent_playback_stopped', 'source': 'wait_wakeup', 'dest': 'wait_wakeup'},
+
+    { 'trigger': 'reset', 'source': '*', 'dest': 'wait_wakeup'},
 ]
 
 class WakeupTestModel(object):
@@ -139,6 +140,7 @@ class WakeupTestModel(object):
         if b is not None and a is not None:
             if a > b:
                 print("!!!Warning!!! time difference must be monotonic. Forcing to 0.0 instead of " + str(b-a))
+                return 0.0
             return b - a
         else:
             return INVALID_VALUE
@@ -180,6 +182,9 @@ class WakeupTestModel(object):
                 retval_dict['outcome'], retval_dict['wakeup_time'], retval_dict['stt_time'], retval_dict['intent_recognition_time'], ))
         # TODO: CPU performance
         return retval_dict
+
+    def get_all_results(self):
+        return self._test_state_dict
 
 
 wake_up_test_model = WakeupTestModel()
