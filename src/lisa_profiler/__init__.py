@@ -7,6 +7,7 @@ import rospy
 from .audio import sd
 from .audio import read_file_and_play
 from ._helper import _print_debug
+from transitions.core import MachineError
 
 #################
 ### Constants ###
@@ -130,36 +131,39 @@ def analyse_df(df):
 		sm_data['topic'] = data[1]
 		sm_data['payload'] = data[2]
 		enter_state = wake_up_test_model.state
-		print("Transition[" + str(sm_data['transition']) + "] " + sm_data['topic'] + " from state: " + str(enter_state))
+		print("Transition[{}] {}  from state: {}".format(str(sm_data['transition']), sm_data['topic'] , enter_state))
 		#print("received transition {} [{}]-{}> |{}|".format(
 		#		sm_data['transition'], sm_data['timestamp'], sm_data['topic'], sm_data['payload']))
 		transitions_has_happened = True
-		if sm_data['topic']==TPC_WAKEUP_IDENTIFIED:
-			wake_up_test_model.waked_up_received(data=sm_data)
-		elif sm_data['topic']==TPC_WAKEUP_START:
-			wake_up_test_model.wakeup_playback_started(data=sm_data)
-		elif sm_data['topic']==TPC_WAKEUP_STOP:
-			wake_up_test_model.wakeup_playback_stopped(data=sm_data)
-		elif sm_data['topic']==TPC_TEXT_CAPTURED:
-			wake_up_test_model.text_recieved(data=sm_data)
-		elif sm_data['topic']==TPC_INTENT_START:
-			wake_up_test_model.intent_playback_started(data=sm_data)
-		elif sm_data['topic']==TPC_INTENT_STOP:
-			wake_up_test_model.intent_playback_stopped(data=sm_data)
-		elif sm_data['topic']==TPC_INTENT_IDENTIFIED:
-			wake_up_test_model.intent_recognized_recieved(data=sm_data)
-		elif sm_data['topic']==TPC_INTENT_NOT_IDENTIFIED:
-			wake_up_test_model.intent_not_recognized_recieved(data=sm_data)
-		else:
+		try:
+			if sm_data['topic']==TPC_WAKEUP_IDENTIFIED:
+				wake_up_test_model.waked_up_received(data=sm_data)
+			elif sm_data['topic']==TPC_WAKEUP_START:
+				wake_up_test_model.wakeup_playback_started(data=sm_data)
+			elif sm_data['topic']==TPC_WAKEUP_STOP:
+				wake_up_test_model.wakeup_playback_stopped(data=sm_data)
+			elif sm_data['topic']==TPC_TEXT_CAPTURED:
+				wake_up_test_model.text_recieved(data=sm_data)
+			elif sm_data['topic']==TPC_INTENT_START:
+				wake_up_test_model.intent_playback_started(data=sm_data)
+			elif sm_data['topic']==TPC_INTENT_STOP:
+				wake_up_test_model.intent_playback_stopped(data=sm_data)
+			elif sm_data['topic']==TPC_INTENT_IDENTIFIED:
+				wake_up_test_model.intent_recognized_recieved(data=sm_data)
+			elif sm_data['topic']==TPC_INTENT_NOT_IDENTIFIED:
+				wake_up_test_model.intent_not_recognized_recieved(data=sm_data)
+			else:
+				transitions_has_happened = False
+		except MachineError as e:
+			print("Transition[{}] {} FAILED: {} ".format(str(sm_data['transition']), sm_data['topic'] , e))
 			transitions_has_happened = False
-
 		# just check!
 		if enter_state!=wake_up_test_model.state:
 			print("\tTransition from {} ---> to {}".format(enter_state, wake_up_test_model.state))
 		elif transitions_has_happened:
 			print("\tInternal Transition from {} ---> to {}".format(enter_state, wake_up_test_model.state))
 		else:
-			print('\tNo transition available, remainaning in state ' + enter_state)
+			print('\tErro or no transition available, remainaning in state ' + enter_state)
 
 		print('=======================')
 

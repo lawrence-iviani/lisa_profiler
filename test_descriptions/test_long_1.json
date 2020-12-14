@@ -1,0 +1,98 @@
+[
+  {
+    "intent": {
+      "expected_intents": [
+        "set_acceleration"
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_1.wav",
+      "pause_after": 3.0,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_1.wav",
+      "pause_after":  0.75,
+      "pause_before": 1.0
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        "set_acceleration"
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_2.wav",
+      "pause_after": 3.0,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_2.wav",
+      "pause_after": 0.75,
+      "pause_before": 1.0
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        "set_acceleration"
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_1.wav",
+      "pause_after": 3.0,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_1.wav",
+      "pause_after":  0.75,
+      "pause_before": 1.0
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        "set_acceleration"
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_2.wav",
+      "pause_after": 3.0,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_2.wav",
+      "pause_after": 0.75,
+      "pause_before": 1.0
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        "set_acceleration"
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_1.wav",
+      "pause_after": 3.0,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_1.wav",
+      "pause_after":  0.75,
+      "pause_before": 1.0
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        "set_acceleration"
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_2.wav",
+      "pause_after": 3.0,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_2.wav",
+      "pause_after": 0.75,
+      "pause_before": 1.0
+    }
+  }
+]

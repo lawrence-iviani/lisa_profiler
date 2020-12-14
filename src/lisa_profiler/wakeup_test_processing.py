@@ -12,18 +12,33 @@ transitions = [
     ## From wait_wakeup
     { 'trigger': 'waked_up_received', 'source': 'wait_wakeup', 'dest': 'wait_text','before': 'set_wakedup' },
     # Internal transition in wakeup (not leaving the state!)
-    { 'trigger': 'wakeup_playback_started', 'source': 'wait_wakeup', 'dest': None, 'before': 'set_wakeup_playback_started'}, #'wait_wakeup' },
-    { 'trigger': 'wakeup_playback_stopped', 'source': 'wait_wakeup', 'dest': None, 'before': 'set_wakeup_playback_stopped'}, #'wait_wakeup' },
+    { 'trigger': 'wakeup_playback_started', 'source': 'wait_wakeup', 'dest': None, 'before': 'set_wakeup_playback_started'},
+    { 'trigger': 'wakeup_playback_stopped', 'source': 'wait_wakeup', 'dest': None, 'before': 'set_wakeup_playback_stopped'},
 
-    # From wait_text
+    ## From wait_text
     { 'trigger': 'text_recieved', 'source': 'wait_text', 'dest': 'wait_intent', 'before': 'set_text_captured' },
     # Internal transition in wakeup (not leaving the state!)
-    { 'trigger': 'intent_playback_started', 'source': 'wait_text', 'dest': None, 'before': 'set_start_playback_intent' },
-    { 'trigger': 'intent_playback_stopped', 'source': 'wait_text', 'dest': None, 'before': 'set_stop_playback_intent' },
+    { 'trigger': 'intent_playback_started', 'source': 'wait_text', 'dest': None, 'before': 'set_start_playback_intent'},
+    { 'trigger': 'intent_playback_stopped', 'source': 'wait_text', 'dest': None, 'before': 'set_stop_playback_intent'},
+    # it can happen that a wakeup is detected after the execution?
+    { 'trigger': 'wakeup_playback_stopped', 'source': 'wait_text', 'dest': None, 'before': 'set_wakeup_playback_stopped'},
 
-    # From wait_intent
+    ## From wait_intent
+    # Regular end
     { 'trigger': 'intent_recognized_recieved', 'source': 'wait_intent', 'dest': 'wait_wakeup', 'before': 'set_intent_recognized'},
     { 'trigger': 'intent_not_recognized_recieved', 'source': 'wait_intent', 'dest': 'wait_wakeup', 'before': 'set_intent_not_recognized' },
+
+    ## Backup trigger, used if none of the above are executed.
+    # ORDER MATTERS: Accordinlgly to transitions documentation:
+    # (Note that only the first matching transition will execute; thus, the transition defined in the last line above won't do anything.)
+
+    # Entering in wait_wake up reset the actual session, the after set_wakeup_playback_started persist the time value of playbacl start
+    { 'trigger': 'wakeup_playback_started', 'source': '*', 'dest': 'wait_wakeup', 'after': 'set_wakeup_playback_started'},
+
+    # From these states is legal go back to wait_wake up. The test has been succesful for
+    # missed wake up, both are needed
+    { 'trigger': 'intent_playback_started', 'source': 'wait_wakeup', 'dest': 'wait_wakeup'}, #, 'before': 'set_wakeup_playback_started'},
+    { 'trigger': 'intent_playback_stopped', 'source': 'wait_wakeup', 'dest': 'wait_wakeup'},
 ]
 
 class WakeupTestModel(object):
@@ -41,16 +56,13 @@ class WakeupTestModel(object):
     _test_state_dict = {}
 
     def __init__(self):
-        self._result_counter = 0
         self._reset_timers()
 
     #############################
     ###  SM functions related ###
     #############################
     def on_enter_wait_wakeup(self, data=None):
-        print('on_enter_wait_wakeup', data)
-        self.persist_state_and_reset("item_" + str(self._result_counter) )
-        self._result_counter += 1
+        self.persist_state_and_reset("transition_" + str(data['transition']) )
 
     def set_wakeup_playback_started(self, data=None):
         self._set_timing('start_wakeup_pb', data['timestamp'])
@@ -75,13 +87,6 @@ class WakeupTestModel(object):
 
     def set_intent_not_recognized(self, data=None):
         self._set_timing('intent_not_recognized', data['timestamp'])
-
-
-    #def on_exit_wait_wakeup(self, data=None):
-    #    print('on_exit_wait_wakeup',data)
-
-    #def on_enter_wait_text(self, data=None):
-    #    print('on_enter_wait_text',data)
 
     ###########################################
     ###  utilities functions and properties ###
@@ -132,6 +137,8 @@ class WakeupTestModel(object):
     @staticmethod
     def _perform_difference(b, a):
         if b is not None and a is not None:
+            if a > b:
+                print("!!!Warning!!! time difference must be monotonic. Forcing to 0.0 instead of " + str(b-a))
             return b - a
         else:
             return INVALID_VALUE
@@ -174,8 +181,6 @@ class WakeupTestModel(object):
         # TODO: CPU performance
         return retval_dict
 
-    def set_value(self):
-        pass
 
 wake_up_test_model = WakeupTestModel()
 wake_up_test_sm = Machine(wake_up_test_model, queued=True,  states=states, transitions=transitions, initial='wait_wakeup')
