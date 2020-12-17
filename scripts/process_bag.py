@@ -19,7 +19,7 @@ def build_parser():
 	                    help='Key you would like to print',
 	                    required=False, nargs='*')
 	parser.add_argument('-o', '--output', help='Output in CSV',
-	                    required=False, default=False)
+	                    action="store_true", default=False)
 	parser.add_argument('-v', '--verbose',
 	                    help="Log verbose",
 	                    default=False, action="store_true")

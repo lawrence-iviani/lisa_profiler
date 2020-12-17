@@ -25,15 +25,19 @@ def get_intent_token(wave_folder, args):
 	Helper function for create a dict representing an intent token of the test
 	'''
 	ret_dict = {'filename':  '',
-				'expected_intents': [],
+				'expected_intents': [], # with an empty intent as example
 				'pause_before': DEFAULT_PAUSE_BEFORE,
 				'pause_after': DEFAULT_PAUSE_AFTER}
 	for key, value in args.items():
 		if key == 'filename':
 			value = os.path.join(wave_folder, value)
 		elif key == 'expected_intents':
-			if isinstance(value,str):
+# { 'intent_name': 'MotionParamSet',  'pay_load/1': ' target=velocity', 'pay_load/2': 'decimal_part=one', 'pay_load/3': 'fractional_part=five'}
+			#if isinstance(value, str):
+			#	value = [value]
+			if isinstance(value, dict):
 				value = [value]
+			# cvalue should be a list of dict at this point
 		ret_dict[key] = value
 	return ret_dict
 

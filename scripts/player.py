@@ -91,12 +91,13 @@ if __name__ == "__main__":
 
 			if 	args.rosbag:
 				print("stoping rosbag process: " + str(rosbag_proc))
-				sleep(3) # Give time to all messages to be processed etc. (Use rospy.sleep instead??)		
+				sleep(3) # Give time to all messages to be processed etc. (Use rospy.sleep instead??)
 				ros_stop_lisa_rosbag(rosbag_proc)
 			print("Exit")
 		except KeyboardInterrupt:
 			parser.exit('\nInterrupted by user')
 		except Exception as e:
+			raise e
 			parser.exit('\nError catched: ' + type(e).__name__ + ': ' + str(e))
 	import threading
 	#threading.Thread(target=_run_work, args=(args,ros_publishers_dict)).start()

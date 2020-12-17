@@ -1,5 +1,6 @@
 from transitions import Machine
 from . import INVALID_VALUE
+import json
 
 states=['wait_wakeup', 'wait_text', 'wait_intent']
 
@@ -48,6 +49,7 @@ class WakeupTestModel(object):
     NOT_STARTED = "NOT STARTED"
     WAKEUP_DETECTED = "WAKEDUP"
     WAKEUP_NOT_DETECTED = "NOT WAKEDUP"
+    WAKEUP_WRONG_DETECTION = "WRONG WAKEDUP"
     TEXT_TRANSCRIPTED = "TEXT ACQUIRED"
     INTENT_RECOGNIZED = "RECOGNIZED"
     INTENT_WRONG_RECOGNIZED = "WRONG RECOGNIZED"
@@ -57,7 +59,7 @@ class WakeupTestModel(object):
     _test_state_dict = {}
 
     def __init__(self):
-        self._reset_timers()
+        self._reset_state()
 
     #############################
     ###  SM functions related ###
@@ -66,15 +68,18 @@ class WakeupTestModel(object):
         self.persist_state_and_reset("transition_" + str(data['transition']) )
 
     def set_wakeup_playback_started(self, data=None):
+        self._set_wakeup_expected(data)
         self._set_timing('start_wakeup_pb', data['timestamp'])
 
     def set_wakeup_playback_stopped(self, data=None):
         self._set_timing('stop_wakeup_pb', data['timestamp'])
 
     def set_wakedup(self, data=None):
+        self._set_wakeup_received(data)
         self._set_timing('waked_up', data['timestamp'])
 
     def set_start_playback_intent(self, data=None):
+        self._set_intent_expected(data)
         self._set_timing('start_intent_pb', data['timestamp'])
 
     def set_stop_playback_intent(self, data=None):
@@ -84,6 +89,7 @@ class WakeupTestModel(object):
         self._set_timing('text_captured', data['timestamp'])
 
     def set_intent_recognized(self, data=None):
+        self._set_intent_received(data)
         self._set_timing('intent_recognized', data['timestamp'])
 
     def set_intent_not_recognized(self, data=None):
@@ -94,14 +100,30 @@ class WakeupTestModel(object):
     ###########################################
     def _set_timing(self, timer_name, value):
         _self_timer_name = "_t_" + timer_name
-        print('_set_timing', timer_name, value)
+        #print('_set_timing', timer_name, value)
         if hasattr(self, _self_timer_name):
             assert isinstance(value, float), "Time value must be a float, instead is " + str(value.__class__)
             setattr(self, _self_timer_name, value)
         else:
             print("!!!Warning!!! not existent timing " + _self_timer_name + " skipping")
 
-    def _reset_timers(self):
+    def _set_intent_received(self, data):
+        assert isinstance(data, dict) and 'payload' in data.keys(), "Payload must be a dict containing a key payload" + str(payload)
+        self._intent_received_data = data['payload']
+
+    def _set_wakeup_received(self, data):
+        assert isinstance(data, dict) and 'payload' in data.keys(), "Payload must be a dict containing a key payload" + str(payload)
+        self._wakeup_received_data = data['payload']
+
+    def _set_intent_expected(self, data):
+        assert isinstance(data, dict) and 'payload' in data.keys(), "Payload must be a dict containing a key payload" + str(payload)
+        self._intent_expected_data = json.loads(data['payload']['data'])
+
+    def _set_wakeup_expected(self, data):
+        assert isinstance(data, dict) and 'payload' in data.keys(), "Payload must be a dict containing a key payload" + str(payload)
+        self._wakeup_expected_data =  json.loads(data['payload']['data'])
+
+    def _reset_state(self):
         self._t_start_wakeup_pb = None
         self._t_stop_wakeup_pb = None
         self._t_waked_up = None
@@ -110,15 +132,45 @@ class WakeupTestModel(object):
         self._t_text_captured = None
         self._t_intent_recognized = None
         self._t_intent_not_recognized = None
+        self._intent_expected_data = None
+        self._intent_received_data = None
+        self._wakeup_expected_data = None
+        self._wakeup_received_data = None
+
+    def _are_compatible_expected_and_received_intent(self):
+        _expected_intents = self._intent_expected_data['expected_intents']
+        assert isinstance(_expected_intents, list)
+        for i in _expected_intents:
+            if i['intent_name'] != self._intent_received_data['intent_name']:
+                continue
+            # check if a payload is as expected
+            _correct_pl = True
+            for pl in  [p for p in i if p.startswith('pay_load')]:
+                if pl in self._intent_received_data.keys() and \
+                         self._intent_received_data[pl] == i[pl]:
+                    continue
+                else:
+                    _correct_pl = False
+                    break
+            if _correct_pl:
+                return True
+        return False
 
     @property
     def result(self):
+        # Running in sequence of posible events. It is a simple state machine
+        # where the reset is the possible outcome from every states
+        # to restart the sm from the state on the top
         if self._t_start_wakeup_pb is None:
             return self.NOT_STARTED
+        assert self._wakeup_expected_data is not None, "Cannot be a wakeup recognized without expected data"
         if self._t_stop_wakeup_pb is None:
             return self.NOT_STARTED
         if self._t_waked_up is None:
             return self.WAKEUP_NOT_DETECTED
+        assert self._wakeup_received_data is not None, "Cannot be a wakeup recognized without received data"
+        if self._wakeup_expected_data['expected_wakeup_word'] != self._wakeup_received_data['wakeup_word']:
+            return self.WAKEUP_WRONG_DETECTION
         if self._t_start_intent_pb is None:
             return self.WAKEUP_DETECTED
         if self._t_stop_intent_pb is None:
@@ -128,7 +180,11 @@ class WakeupTestModel(object):
         if self._t_intent_recognized is None and self._t_intent_recognized is None :
             return self.TEXT_TRANSCRIPTED
         if self._t_intent_recognized is not None:
-            # TOOD: check the expected intnent and payload were recognized
+            assert self._intent_received_data is not None, "Cannot be an intent recognized without received data"
+            if self._are_compatible_expected_and_received_intent():
+                return self.INTENT_RECOGNIZED
+            else:
+                return self.INTENT_WRONG_RECOGNIZED
             return self.INTENT_RECOGNIZED
         if self._t_intent_not_recognized is not None:
             return self.INTENT_NOT_RECOGNIZED
@@ -164,7 +220,7 @@ class WakeupTestModel(object):
 
     def persist_state_and_reset(self, name=""):
         self.persist_state(name=name)
-        self._reset_timers()
+        self._reset_state()
 
     def persist_state(self, name=""):
         assert name is not None and isinstance(name, str) and len(name), "Invalid name to persist test result: " + str(name)
@@ -178,8 +234,8 @@ class WakeupTestModel(object):
         retval_dict['wakeup_time'] = self.time_for_waking_up
         retval_dict['stt_time'] = self.time_for_stt
         retval_dict['intent_recognition_time'] = self.time_for_tti
-        print("----->>>>>> Results >{}< wakeup_time={}s. stt_time={}s. intent_recognition_time={}s.".format(
-                retval_dict['outcome'], retval_dict['wakeup_time'], retval_dict['stt_time'], retval_dict['intent_recognition_time'], ))
+        #print("----->>>>>> Results >{}< wakeup_time={}s. stt_time={}s. intent_recognition_time={}s.".format(
+        #        retval_dict['outcome'], retval_dict['wakeup_time'], retval_dict['stt_time'], retval_dict['intent_recognition_time'], ))
         # TODO: CPU performance
         return retval_dict
 

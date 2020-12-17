@@ -154,6 +154,162 @@
       "pause_after": 1.5,
       "pause_before": 0.45
     }
+  },
+{
+    "intent": {
+      "expected_intents": [
+        {
+          "intent_name": "MotionParamSet",
+          "pay_load/1": "target=velocity",
+          "pay_load/2": "decimal_part=one",
+          "pay_load/3": "fractional_part=five"
+        }
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_1.wav",
+      "pause_after": 2.5,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_1.wav",
+      "pause_after": 1.5,
+      "pause_before": 0.45
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        {
+          "intent_name": "ExecuteTrajectory"
+        }
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_2.wav",
+      "pause_after": 2.5,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_2.wav",
+      "pause_after": 1.5,
+      "pause_before": 0.45
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        {
+          "intent_name": "MotionParamSet",
+          "pay_load/1": "target=velocity",
+          "pay_load/2": "decimal_part=one",
+          "pay_load/3": "fractional_part=five"
+        }
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_1.wav",
+      "pause_after": 2.5,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_1.wav",
+      "pause_after": 1.5,
+      "pause_before": 0.45
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        {
+          "intent_name": "ExecuteTrajectory"
+        }
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_2.wav",
+      "pause_after": 2.5,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_2.wav",
+      "pause_after": 1.5,
+      "pause_before": 0.45
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        {
+          "intent_name": "MotionParamSet",
+          "pay_load/1": "target=velocity",
+          "pay_load/2": "decimal_part=one",
+          "pay_load/3": "fractional_part=five"
+        }
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_1.wav",
+      "pause_after": 2.5,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_1.wav",
+      "pause_after": 1.5,
+      "pause_before": 0.45
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        {
+          "intent_name": "ExecuteTrajectory"
+        }
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_2.wav",
+      "pause_after": 2.5,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_2.wav",
+      "pause_after": 1.5,
+      "pause_before": 0.45
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        {
+          "intent_name": "MotionParamSet",
+          "pay_load/1": "target=velocity",
+          "pay_load/2": "decimal_part=one",
+          "pay_load/3": "fractional_part=five"
+        }
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_1.wav",
+      "pause_after": 2.5,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_1.wav",
+      "pause_after": 1.5,
+      "pause_before": 0.45
+    }
+  },
+  {
+    "intent": {
+      "expected_intents": [
+        {
+          "intent_name": "ExecuteTrajectory"
+        }
+      ],
+      "filename": "/media/sf_Thesis/test track/intent_test_2.wav",
+      "pause_after": 2.5,
+      "pause_before": 0.0
+    },
+    "wakeup": {
+      "expected_wakeup_word": "snowboy",
+      "filename": "/media/sf_Thesis/test track/snowboy_test_2.wav",
+      "pause_after": 1.5,
+      "pause_before": 0.45
+    }
   }
 ]
 

@@ -2,7 +2,7 @@ import rospy
 from transitions.core import MachineError
 import pandas as pd
 import numpy as np
-
+import json
 
 #################
 ### Constants ###
@@ -43,6 +43,7 @@ from .wakeup_test_processing import wake_up_test_model
 # Check in wake_up_test_model for other values
 RESULT_TAGS = [wake_up_test_model.WAKEUP_DETECTED,
 			   wake_up_test_model.WAKEUP_NOT_DETECTED,
+			   wake_up_test_model.WAKEUP_WRONG_DETECTION,
 			   wake_up_test_model.TEXT_TRANSCRIPTED,
 			   wake_up_test_model.INTENT_RECOGNIZED,
 			   wake_up_test_model.INTENT_WRONG_RECOGNIZED,
@@ -55,8 +56,8 @@ RESULT_TAGS = [wake_up_test_model.WAKEUP_DETECTED,
 ########### RUN TEST ###########
 def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
 
-	def _run_test(filename, pause_before, pause_after, audio_params, rosmsg_before=None, rosmsg_after=None, msg_tag=''):
-
+	def _run_test(filename, pause_before, pause_after, audio_params, rosmsg_before=None, rosmsg_after=None, msg_data=''):
+		# TODO: add here intent to embed as json? in the string message
 		# 1. Pause before
 		_print_debug(function='run_file_test', msg="sleeping BEFORE for {} sec.".format(pause_before ))
 		#rospy.sleep(pause_before)
@@ -64,10 +65,10 @@ def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
 		# 2. Signal before, play file and signal after
 		_print_debug(function='run_file_test', msg="Play file {}".format(filename))
 		if rosmsg_before is not None:
-			 rosmsg_before.publish("Start " + msg_tag + "\t" + filename)
+			 rosmsg_before.publish(msg_data)
 		read_file_and_play(filename, audio_params)
 		if rosmsg_after is not None:
-			 rosmsg_after.publish("Stop " + msg_tag + "\t" + filename)
+			 rosmsg_after.publish(msg_data)
 
 		# 3. Pause after
 		_print_debug(function='run_file_test', msg="sleeping AFTER for {} sec.".format(pause_after ))
@@ -78,15 +79,20 @@ def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
 		_print_debug(function='run_file_test', msg="===== START TEST ITEM ====\n=============================\n")
 		# wakeup
 		_print_debug(function='run_file_test', msg="===== WAKEUP ====")
+
+		a = {'msg_tag': TAG_MSG_WAKEUP,'expected_wakeup_word': t['wakeup']['expected_wakeup_word']}
+		msg_data = json.dumps(a)
 		_run_test(filename=t['wakeup']['filename'],
 				  pause_before=t['wakeup']['pause_before'],
 				  pause_after=t['wakeup']['pause_after'],
 				  audio_params=audio_params,
 				  rosmsg_before=ros_publishers_dict['pub_start_wakeup'],
 				  rosmsg_after=ros_publishers_dict['pub_stop_wakeup'],
-				  msg_tag=TAG_MSG_WAKEUP)
+				  msg_data=msg_data)
 
 		# intent
+		a = {'msg_tag': TAG_MSG_INTENTS,'expected_intents': t['intent']['expected_intents']}
+		msg_data = json.dumps(a)
 		_print_debug(function='run_file_test', msg="===== INTENT ====")
 		_run_test(filename=t['intent']['filename'],
 				  pause_before=t['intent']['pause_before'],
@@ -94,7 +100,7 @@ def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
 				  audio_params=audio_params,
 				  rosmsg_before=ros_publishers_dict['pub_start_intent'],
 				  rosmsg_after=ros_publishers_dict['pub_stop_intent'],
-				  msg_tag=TAG_MSG_INTENTS)
+				  msg_data=msg_data)
 
 		_print_debug(function='run_file_test', msg="===== END TEST ITEM ====\n=============================\n")
 
@@ -137,7 +143,7 @@ def _get_data_from_topic(topic, pd_serie):
 
 def analyse_df(df, result_tags_list=RESULT_TAGS):
 
-
+	_print_debug(function='analyse_df', msg="\n===== START ANALYSIS ====")
 	for n, r in enumerate(df.iterrows()):
 		sm_data = {}
 		data = r[1] # get the row as tuple timestamp, topic, payload
@@ -146,7 +152,7 @@ def analyse_df(df, result_tags_list=RESULT_TAGS):
 		sm_data['topic'] = data[1]
 		sm_data['payload'] = data[2]
 		enter_state = wake_up_test_model.state
-		print("Transition[{}] {}  from state: {}".format(str(sm_data['transition']), sm_data['topic'] , enter_state))
+		_print_debug("Transition[{}] {}  from state: {}".format(str(sm_data['transition']), sm_data['topic'] , enter_state), "analyse_df", )
 		#print("received transition {} [{}]-{}> |{}|".format(
 		#		sm_data['transition'], sm_data['timestamp'], sm_data['topic'], sm_data['payload']))
 		transitions_has_happened = True
@@ -170,41 +176,32 @@ def analyse_df(df, result_tags_list=RESULT_TAGS):
 			else:
 				transitions_has_happened = False
 		except MachineError as e:
-			print("Transition[{}] {} FAILED: {} ".format(str(sm_data['transition']), sm_data['topic'] , e))
+			_print_debug("Transition[{}] {} FAILED: {} ".format(str(sm_data['transition']), sm_data['topic'] , e), "analyse_df")
 			wake_up_test_model.reset(data=sm_data)
 			transitions_has_happened = False
 		# just check!
 		if enter_state!=wake_up_test_model.state:
-			print("\tTransition from {} ---> to {}".format(enter_state, wake_up_test_model.state))
+			_print_debug("\tTransition from {} ---> to {}".format(enter_state, wake_up_test_model.state), "analyse_df",)
 		elif transitions_has_happened:
-			print("\tInternal Transition from {} ---> to {}".format(enter_state, wake_up_test_model.state))
+			_print_debug("\tInternal Transition from {} ---> to {}".format(enter_state, wake_up_test_model.state), "analyse_df", )
 		else:
-			print('\tError or no transition available, remainaning in state ' + enter_state)
+			_print_debug('\tError or no transition available, remainaning in state ' + enter_state, "analyse_df",)
+		_print_debug( '=======================', "analyse_df",)
 
-		print('=======================')
-
-	#dict_tagged_results = {key: list() for key in result_tags_list}
+	_print_debug(function='analyse_df', msg="\n===== START PROCESSING ====")
 	dict_tagged_results = {key: dict() for key in result_tags_list}
 	for transition_id, result in wake_up_test_model.get_all_results().items():
 		#{'transition_6': {'outcome': 'TEXT ACQUIRED', 'wakeup_time': 0.1695864200592041, 'stt_time': 3.7553460597991943, 'intent_recognition_time': 'NaN'},
 		if result['outcome'] in result_tags_list:
 			k = result['outcome']
-			# v = {transition_id: result}
-			# print("++++\nAdding transition: {} --- {} \n++++".format(k, v))
-			# dict_tagged_results[k].append(v)    # [transition_id] = result
-			print("++++\nAdding transition: {} transition {} --- {} \n++++".format(k, transition_id, result))
 			dict_tagged_results[k][transition_id] = result    # [transition_id] = result
 
-	# transform dict in pandas df
+	_print_debug(function='analyse_df', msg="\n===== FORMAT OUTPUT ====")
 	pd_tagged_results = {}
 	for outcome, transitions in  dict_tagged_results.items():
-		#print(transitions)
 		data_frame = pd.DataFrame(transitions)
 		pd_tagged_results[outcome] = data_frame.dropna(axis=0, how='all')
-		#pd_tagged_results[outcome]#axis=0, how='any') # drop a row if all are NaN
-		# print(pd.DataFrame(transitions))
 	return pd_tagged_results
-
 
 
 def run_process_bag(df, topics=DEFAULT_TOPICS): # pandas dataframe
