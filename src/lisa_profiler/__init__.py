@@ -16,12 +16,10 @@ TAG_MSG_INTENTS = "intents"
 TPC_WAKEUP_START = 'start_wakeup'
 TPC_WAKEUP_STOP = 'stop_wakeup'
 TPC_WAKEUP_IDENTIFIED = 'lisa/waked_up'
-
 TPC_INTENT_START = 'start_intent'
 TPC_INTENT_STOP = 'stop_intent'
 TPC_INTENT_IDENTIFIED = 'lisa/intent'
 TPC_INTENT_NOT_IDENTIFIED = 'lisa/not_recognized'
-
 TPC_TEXT_CAPTURED = 'lisa/text_captured'
 
 # Topics that are processed
@@ -52,14 +50,18 @@ RESULT_TAGS = [wake_up_test_model.WAKEUP_DETECTED,
 #################
 ### Functions ###
 #################
+from collections import namedtuple
+test_result = namedtuple('test_result', ['test', 'result', 'msg'])
+import time
+current_milli_time = lambda: int(round(time.time() * 1000))
 
 ########### RUN TEST ###########
 def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
-
+	import json
 	def _run_test(filename, pause_before, pause_after, audio_params, rosmsg_before=None, rosmsg_after=None, msg_data=''):
 		# TODO: add here intent to embed as json? in the string message
 		# 1. Pause before
-		_print_debug(function='run_file_test', msg="sleeping BEFORE for {} sec.".format(pause_before ))
+		#_print_debug(function='run_file_test', msg="sleeping BEFORE for {} sec.".format(pause_before ))
 		#rospy.sleep(pause_before)
 		sd.sleep(int(pause_before*1000))
 		# 2. Signal before, play file and signal after
@@ -71,39 +73,46 @@ def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
 			 rosmsg_after.publish(msg_data)
 
 		# 3. Pause after
-		_print_debug(function='run_file_test', msg="sleeping AFTER for {} sec.".format(pause_after ))
+		#_print_debug(function='run_file_test', msg="sleeping AFTER for {} sec.".format(pause_after ))
 		#rospy.sleep(pause_after)
 		sd.sleep(int(pause_after*1000))
-
+	results = []
 	for t in json_tests_list:
 		_print_debug(function='run_file_test', msg="===== START TEST ITEM ====\n=============================\n")
-		# wakeup
-		_print_debug(function='run_file_test', msg="===== WAKEUP ====")
+		result = test_result(test=t, result='Not executed', msg='')
+		try:
+			_start_time = current_milli_time()
+			# wakeup
+			_print_debug(function='run_file_test', msg="===== WAKEUP ====")
 
-		a = {'msg_tag': TAG_MSG_WAKEUP,'expected_wakeup_word': t['wakeup']['expected_wakeup_word']}
-		msg_data = json.dumps(a)
-		_run_test(filename=t['wakeup']['filename'],
-				  pause_before=t['wakeup']['pause_before'],
-				  pause_after=t['wakeup']['pause_after'],
-				  audio_params=audio_params,
-				  rosmsg_before=ros_publishers_dict['pub_start_wakeup'],
-				  rosmsg_after=ros_publishers_dict['pub_stop_wakeup'],
-				  msg_data=msg_data)
+			a = {'msg_tag': TAG_MSG_WAKEUP,'expected_wakeup_word': t['wakeup']['expected_wakeup_word']}
+			msg_data = json.dumps(a)
+			_run_test(filename=t['wakeup']['filename'],
+					  pause_before=t['wakeup']['pause_before'],
+					  pause_after=t['wakeup']['pause_after'],
+					  audio_params=audio_params,
+					  rosmsg_before=ros_publishers_dict['pub_start_wakeup'],
+					  rosmsg_after=ros_publishers_dict['pub_stop_wakeup'],
+					  msg_data=msg_data)
 
-		# intent
-		a = {'msg_tag': TAG_MSG_INTENTS,'expected_intents': t['intent']['expected_intents']}
-		msg_data = json.dumps(a)
-		_print_debug(function='run_file_test', msg="===== INTENT ====")
-		_run_test(filename=t['intent']['filename'],
-				  pause_before=t['intent']['pause_before'],
-				  pause_after=t['intent']['pause_after'],
-				  audio_params=audio_params,
-				  rosmsg_before=ros_publishers_dict['pub_start_intent'],
-				  rosmsg_after=ros_publishers_dict['pub_stop_intent'],
-				  msg_data=msg_data)
-
+			# intent
+			a = {'msg_tag': TAG_MSG_INTENTS,'expected_intents': t['intent']['expected_intents']}
+			msg_data = json.dumps(a)
+			_print_debug(function='run_file_test', msg="===== INTENT ====")
+			_run_test(filename=t['intent']['filename'],
+					  pause_before=t['intent']['pause_before'],
+					  pause_after=t['intent']['pause_after'],
+					  audio_params=audio_params,
+					  rosmsg_before=ros_publishers_dict['pub_start_intent'],
+					  rosmsg_after=ros_publishers_dict['pub_stop_intent'],
+					  msg_data=msg_data)
+			result = test_result(test=result.test, result='Executed', msg=str(current_milli_time() - _start_time))
+		except Exception as e:
+			result = test_result(test=result.test, result='Error', msg=str(e))
+			_print_debug(function='run_file_test', msg="**** ERROR!!!! ****\n********* " + str(e))
+		results.append(result)
 		_print_debug(function='run_file_test', msg="===== END TEST ITEM ====\n=============================\n")
-
+	return results
 
 def _check_for_topic(pd_serie, search_topics_list):
 	"""

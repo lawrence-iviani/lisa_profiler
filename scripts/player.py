@@ -86,8 +86,14 @@ if __name__ == "__main__":
 				rosbag_proc = ros_start_lisa_rosbag()
 				print("Started rosbag process: " + str(rosbag_proc))
 			print("Starting test")
-			run_file_test(json_tests_list, audio_params, ros_publishers_dict)
+			results = run_file_test(json_tests_list, audio_params, ros_publishers_dict)
 			print("Test Terminated")
+
+			for r in results:
+				if r.result == 'Error':
+					print("\n +++++ {} - \n\t{} \n --- Test: \n|{}|\n".format(r.result, r.msg, r.test))
+				else:
+					print(" - {} - Execution {} ms".format(r.result, r.msg))
 
 			if 	args.rosbag:
 				print("stoping rosbag process: " + str(rosbag_proc))

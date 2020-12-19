@@ -13,7 +13,7 @@ def get_wakeup_token(wave_folder, args):
 				'pause_before': DEFAULT_PAUSE_BEFORE,
 				'pause_after': DEFAULT_PAUSE_AFTER}
 	for key, value in args.items():
-		print(key, value)
+		#print(key, value)
 		if key == 'filename':
 			value = os.path.join(wave_folder, value)
 		ret_dict[key] = value
@@ -42,12 +42,12 @@ def get_intent_token(wave_folder, args):
 	return ret_dict
 
 
-def get_test_token(wave_folder, args_wakeup, args_intent):
+def get_test_token(wave_folder, args_wakeup, intent_folder, args_intent):
 	'''
 	Helper function for create a dict representing one token of the test
 	'''
 	return {'wakeup': get_wakeup_token(wave_folder, args_wakeup),
-			'intent': get_intent_token(wave_folder, args_intent)}
+			'intent': get_intent_token(intent_folder, args_intent)}
 
 
 def get_json_test_token(wave_folder, args_wakeup, args_intent):
