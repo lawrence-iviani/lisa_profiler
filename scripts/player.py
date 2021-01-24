@@ -21,7 +21,7 @@ import queue
 import sys
 import rospy
 
-from lisa_profiler import run_file_test
+from lisa_profiler import run_file_test, current_milli_time
 from lisa_profiler.audio import query_devices, AudioParametersStruct
 from lisa_profiler.json import load_from_json_file
 from lisa_profiler.ros import ros_init, ros_start_lisa_rosbag, ros_stop_lisa_rosbag
@@ -85,9 +85,11 @@ if __name__ == "__main__":
 			if args.rosbag:
 				rosbag_proc = ros_start_lisa_rosbag()
 				print("Started rosbag process: " + str(rosbag_proc))
+			_start_time = current_milli_time()
 			print("Starting test")
 			results = run_file_test(json_tests_list, audio_params, ros_publishers_dict)
-			print("Test Terminated")
+			_stop_time = current_milli_time()
+			print("Test Terminated in {} sec".format( (_stop_time - _start_time)/1000.0 ))
 
 			for r in results:
 				if r.result == 'Error':

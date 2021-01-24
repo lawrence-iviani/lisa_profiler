@@ -1,6 +1,8 @@
 from transitions import Machine
-from . import INVALID_VALUE
+from word2number import w2n
 import json
+
+from . import INVALID_VALUE
 
 states=['wait_wakeup', 'wait_text', 'wait_intent']
 
@@ -119,6 +121,25 @@ class WakeupTestModel(object):
         assert isinstance(data, dict) and 'payload' in data.keys(), "Payload must be a dict containing a key payload" + str(payload)
         self._intent_expected_data = json.loads(data['payload']['data'])
 
+        ### HOTFIXs  ###
+        ### for ExecutePointN the item pay_load/1 is not properly defined and not necessary.
+        ### it cause false recognition and improper counting
+        # print(self._intent_expected_data)
+        for _expected_itent in self._intent_expected_data['expected_intents']:
+            if _expected_itent['intent_name'] == 'ExecutePointN':
+                if 'pay_load/1' in _expected_itent.keys():
+                    print('Hot fix for ExecutePointN, removing key '.format('pay_load/1', _expected_itent['pay_load/1']))
+                    del  _expected_itent['pay_load/1'] # This will raise a KeyError if the key is not in the dictionary.
+                if 'pay_load/2' in _expected_itent.keys():
+                    _expected_itent['pay_load/2'] = _expected_itent['pay_load/2'].replace('target', 'N')
+                    print('Hot fix for ExecutePointN, changing  key from target to N - {}'.format(_expected_itent['pay_load/2']))
+
+            # in the description file is set as velocity, but the tester was asked to utter acceleration :(
+            elif _expected_itent['intent_name'] == 'MotionParamSet':
+                if 'pay_load/1' in _expected_itent.keys():
+                    print('Hot fix for MotionParamSet, changing value in key {}  from |{}| to |{}|'.format('pay_load/1', _expected_itent['pay_load/1'], 'target=acceleration'))
+                    _expected_itent['pay_load/1'] = 'target=acceleration'
+
     def _set_wakeup_expected(self, data):
         assert isinstance(data, dict) and 'payload' in data.keys(), "Payload must be a dict containing a key payload" + str(payload)
         self._wakeup_expected_data =  json.loads(data['payload']['data'])
@@ -139,21 +160,47 @@ class WakeupTestModel(object):
 
     def _are_compatible_expected_and_received_intent(self):
         _expected_intents = self._intent_expected_data['expected_intents']
+        _rcv_data =  self._intent_received_data
         assert isinstance(_expected_intents, list)
-        for i in _expected_intents:
-            if i['intent_name'] != self._intent_received_data['intent_name']:
+        print("_are_compatible_expected_and_received_intent: expected intent\n\t==== {}\nReceived intent\n\t==== {}".format(
+                    _expected_intents,  self._intent_received_data))
+        for _exp_intent in _expected_intents: # there can be more than one intent??
+            if _exp_intent['intent_name'] != _rcv_data['intent_name']:
                 continue
             # check if a payload is as expected
             _correct_pl = True
-            for pl in  [p for p in i if p.startswith('pay_load')]:
-                if pl in self._intent_received_data.keys() and \
-                         self._intent_received_data[pl] == i[pl]:
-                    continue
+            for pl in  [p for p in _exp_intent if p.startswith('pay_load')]:
+                print("Searching for {} ".format(pl), end = ' ')
+
+                if pl in _rcv_data.keys():
+                    try:
+                        _kval = _rcv_data[pl].split('=')
+                        assert len(_kval) == 2, 'Bad format? {} - {}'.format(pl, _rcv_data[pl])
+                        # print("Modifying |{}| ".format(_kval[1]), end = "+++ ")
+                        _rcv_data[pl] = str(_kval[0]) + "=" + str(w2n.word_to_num(_kval[1]))
+                        print('Modified pl[{}]={}'.format(pl, _rcv_data[pl]), end = "+++ ")
+                    # except TypeError as e:
+                    #     print('Unmodified pl[{}]={}'.format( pl, _rcv_data[pl]), end = "+++ ")
+                    except ValueError as e:
+                        print('Unmodified pl[{}]={}'.format( pl, _rcv_data[pl]), end = "+++ ")
+
+                    if _rcv_data[pl] == _exp_intent[pl]:
+                        print('\tFound it, ', pl, _exp_intent[pl])
+                        continue
+                    else:
+                        print('\tFound it pl[{}] but wrong value {} - expected was {}'.format(pl,  _rcv_data[pl]  ,_exp_intent[pl], ))
+                        _correct_pl = False
+                        break
                 else:
+                    print('\tNot Correct pl {} - '.format(pl))
                     _correct_pl = False
                     break
+            # Found pl?
             if _correct_pl:
+                print("Correct!")
                 return True
+
+        print("FALSE !!!!!!!!!!!!!!!!!!!!!!!!")
         return False
 
     @property

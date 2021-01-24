@@ -11,6 +11,8 @@ from random import randrange
 
 from lisa_profiler.json import get_test_token, save_to_json_file
 
+SHORTER_VERSION = True
+
 WAVE_FOLDER_INTENTS = '/media/sf_Thesis/test track/intents/'
 WAVE_FOLDER_WAKEUP = '/media/sf_Thesis/test track/wakeup_words/'
 
@@ -51,13 +53,7 @@ def _create_motion_param_set(payload_list):
 def _create_intent_execute_point_n(payload_list):
 	dict_val = {}
 	for n, p in enumerate(payload_list):
-		dict_val[n+1] = testers_intent('MotionParamSet', {'pay_load/1': 'action=start','pay_load/2': 'target='+str(p[0]),} )
-	return dict_val
-
-def _create_intent_run_traj(len_dict):
-	dict_val = {}
-	for n in range(len_dict):
-		dict_val[n+1] = testers_intent('ExecuteTrajectory', {} )
+		dict_val[n+1] = testers_intent('ExecutePointN', {'pay_load/1': 'action=start','pay_load/2': 'target='+str(p[0]),} )
 	return dict_val
 
 def _create_intent_execute_traj(len_dict):
@@ -88,12 +84,6 @@ def _create_intent_load_inv_traj(len_dict):
 	dict_val = {}
 	for n in range(len_dict):
 		dict_val[n+1] = testers_intent('LoadInversedTrajectory', {} )
-	return dict_val
-
-def _create_intent_exec_traj(len_dict):
-	dict_val = {}
-	for n in range(len_dict):
-		dict_val[n+1] = testers_intent('ExecuteTrajectory', {} )
 	return dict_val
 
 
@@ -154,9 +144,9 @@ testers_intents_human_male_dict = {
 	'it_m':
 		{
 			'gender': MALE,
-			'wakeup': testers_wakeup('' + WAKEUP_WORD, list(range(1,18+1))),
+			'wakeup': testers_wakeup('' + WAKEUP_WORD, list(range(1,17+1))),
 			INTENT_MOTION_PARAM_SET: _create_motion_param_set([(1,7), (1,9), (1,9)]),
-			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(3),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(2),
 			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n([(21,), (9,), (5,)]),
 			INTENT_LOAD_TRAJ: _create_intent_load_traj(3),
 			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(3),
@@ -203,7 +193,120 @@ testers_intents_human_female_dict = {
 		},
 }
 
-testers_intents_dict = {**testers_intents_human_male_dict,
+
+# the tester and what can be expected, shorter version
+short_testers_intents_synth_male_dict = {
+	's_charles_uk':
+		{
+			'gender': MALE,
+			'wakeup': testers_wakeup('m__' + WAKEUP_WORD, [1]),
+			INTENT_MOTION_PARAM_SET: _create_motion_param_set(INTENT_MOTION_PARAM_SET_SYNTHETHISED_PL[:2]),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(2),
+			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n(INTENT_EXECUTE_POINT_N_PL),
+			INTENT_LOAD_TRAJ: _create_intent_load_traj(1),
+			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(1),
+			INTENT_MOTION_PARAM_STEP: _create_intent_motion_param_step(1),
+			INTENT_SELECT_NEXT_POINT: _create_intent_select_next_point(1),
+		},
+	's_graham_uk':
+		{
+			'gender': MALE,
+			'wakeup': testers_wakeup('m__' + WAKEUP_WORD, [1]),
+			INTENT_MOTION_PARAM_SET: _create_motion_param_set(INTENT_MOTION_PARAM_SET_SYNTHETHISED_PL[:2]),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(2),
+			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n(INTENT_EXECUTE_POINT_N_PL),
+			INTENT_LOAD_TRAJ: _create_intent_load_traj(1),
+			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(1),
+			INTENT_MOTION_PARAM_STEP: _create_intent_motion_param_step(1),
+			INTENT_SELECT_NEXT_POINT: _create_intent_select_next_point(1),
+		},
+	}
+short_testers_intents_synth_female_dict = {
+	's_lucy_uk':
+		{
+			'gender': FEMALE,
+			'wakeup': testers_wakeup('f__' + WAKEUP_WORD, [1]),
+			INTENT_MOTION_PARAM_SET: _create_motion_param_set(INTENT_MOTION_PARAM_SET_SYNTHETHISED_PL[:2]),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(1),
+			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n(INTENT_EXECUTE_POINT_N_PL),
+			INTENT_LOAD_TRAJ: _create_intent_load_traj(1),
+			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(1),
+			INTENT_MOTION_PARAM_STEP: _create_intent_motion_param_step(1),
+			INTENT_SELECT_NEXT_POINT: _create_intent_select_next_point(1),
+		},
+	's_rachel_uk':
+		{
+			'gender': FEMALE,
+			'wakeup': testers_wakeup('f__' + WAKEUP_WORD, [1]),
+			INTENT_MOTION_PARAM_SET: _create_motion_param_set(INTENT_MOTION_PARAM_SET_SYNTHETHISED_PL[:2]),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(1),
+			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n(INTENT_EXECUTE_POINT_N_PL),
+			INTENT_LOAD_TRAJ: _create_intent_load_traj(1),
+			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(1),
+			INTENT_MOTION_PARAM_STEP: _create_intent_motion_param_step(1),
+			INTENT_SELECT_NEXT_POINT: _create_intent_select_next_point(1),
+		},
+	}
+short_testers_intents_human_male_dict = {
+	'it_m':
+		{
+			'gender': MALE,
+			'wakeup': testers_wakeup('' + WAKEUP_WORD, list(range(1,17+1))),
+			INTENT_MOTION_PARAM_SET: _create_motion_param_set([(1,7), ]), # (1,9), (1,9)]),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(2),
+			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n([(21,),]),# (9,), (5,)]),
+			INTENT_LOAD_TRAJ: _create_intent_load_traj(1),
+			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(1),
+			INTENT_MOTION_PARAM_STEP: _create_intent_motion_param_step(1),
+			INTENT_SELECT_NEXT_POINT: _create_intent_select_next_point(1),
+		},
+	'it_m1':
+		{
+			'gender': MALE,
+			'wakeup': testers_wakeup('' + WAKEUP_WORD, list(range(1,8+1))),
+			INTENT_MOTION_PARAM_SET: _create_motion_param_set([(23,7), (24,15),]),# (5,64)]),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(2),
+			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n([(12,), (15,), ]),# (23,),(12,), (12,), (25,)]),
+			# INTENT_LOAD_TRAJ: _create_intent_load_traj(3),
+			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(2),
+			INTENT_MOTION_PARAM_STEP: _create_intent_motion_param_step(2),
+			INTENT_SELECT_NEXT_POINT: _create_intent_select_next_point(2),
+		},
+	'us_m':
+		{
+			'gender': MALE,
+			'wakeup': testers_wakeup('' + WAKEUP_WORD, list(range(1,21+1))),
+			INTENT_MOTION_PARAM_SET: _create_motion_param_set( [(1,9), ]),# ,(6,5), (1,4)]),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(1),
+			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n([(5,),]),# (7,), (7,), (1,)]),
+			INTENT_LOAD_TRAJ: _create_intent_load_traj(1),
+			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(1),
+			INTENT_MOTION_PARAM_STEP: _create_intent_motion_param_step(1),
+			INTENT_SELECT_NEXT_POINT: _create_intent_select_next_point(1),
+		},
+	}
+short_testers_intents_human_female_dict = {
+	'at_f':
+		{
+			'gender': FEMALE,
+			'wakeup': testers_wakeup('' + WAKEUP_WORD, list(range(1,16+1))),
+			INTENT_MOTION_PARAM_SET: _create_motion_param_set([(3,5),]),# (2,3), (1,5)]),
+			INTENT_EXECUTE_TRAJECTORY: _create_intent_execute_traj(2),
+			INTENT_EXECUTE_POINT_N: _create_intent_execute_point_n([(8,),]),# (7,), (3,)]),
+			INTENT_LOAD_TRAJ: _create_intent_load_traj(1),
+			INTENT_LOAD_INV_TRAJ: _create_intent_load_inv_traj(1),
+			INTENT_MOTION_PARAM_STEP: _create_intent_motion_param_step(1),
+			INTENT_SELECT_NEXT_POINT: _create_intent_select_next_point(1),
+		},
+}
+
+if SHORTER_VERSION:
+	testers_intents_dict = {**short_testers_intents_human_male_dict,
+						**short_testers_intents_human_female_dict,
+						**short_testers_intents_synth_female_dict,
+						**short_testers_intents_synth_male_dict}
+else:
+	testers_intents_dict = {**testers_intents_human_male_dict,
 						**testers_intents_human_female_dict,
 						**testers_intents_synth_female_dict,
 						**testers_intents_synth_male_dict}

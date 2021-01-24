@@ -7,7 +7,7 @@ d = generate_distutils_setup(
     packages=['lisa_profiler'],
     package_dir={'': 'src'},
     scripts=['scripts/bag_plot', 'scripts/bag_csv', 'scripts/bag_print'],
-    install_requires=['sounddevice', 'soundfile', 'rosbag_pandas', 'pandas']
+    install_requires=['sounddevice', 'soundfile', 'rosbag_pandas', 'pandas', 'word2number']
 )
 
 setup(**d)

@@ -3,6 +3,9 @@ from transitions.core import MachineError
 import pandas as pd
 import numpy as np
 import json
+from collections import namedtuple
+import time
+
 
 #################
 ### Constants ###
@@ -46,18 +49,16 @@ RESULT_TAGS = [wake_up_test_model.WAKEUP_DETECTED,
 			   wake_up_test_model.INTENT_RECOGNIZED,
 			   wake_up_test_model.INTENT_WRONG_RECOGNIZED,
 		 	   wake_up_test_model.INTENT_NOT_RECOGNIZED]
+test_result = namedtuple('test_result', ['test', 'result', 'msg'])
 
 #################
 ### Functions ###
 #################
-from collections import namedtuple
-test_result = namedtuple('test_result', ['test', 'result', 'msg'])
-import time
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 ########### RUN TEST ###########
 def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
-	import json
+	import json # if i move out of this function i get an error. to investigate
 	def _run_test(filename, pause_before, pause_after, audio_params, rosmsg_before=None, rosmsg_after=None, msg_data=''):
 		# TODO: add here intent to embed as json? in the string message
 		# 1. Pause before
@@ -76,6 +77,7 @@ def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
 		#_print_debug(function='run_file_test', msg="sleeping AFTER for {} sec.".format(pause_after ))
 		#rospy.sleep(pause_after)
 		sd.sleep(int(pause_after*1000))
+
 	results = []
 	for t in json_tests_list:
 		_print_debug(function='run_file_test', msg="===== START TEST ITEM ====\n=============================\n")
@@ -113,6 +115,7 @@ def run_file_test(json_tests_list, audio_params, ros_publishers_dict):
 		results.append(result)
 		_print_debug(function='run_file_test', msg="===== END TEST ITEM ====\n=============================\n")
 	return results
+
 
 def _check_for_topic(pd_serie, search_topics_list):
 	"""
@@ -161,7 +164,7 @@ def analyse_df(df, result_tags_list=RESULT_TAGS):
 		sm_data['topic'] = data[1]
 		sm_data['payload'] = data[2]
 		enter_state = wake_up_test_model.state
-		_print_debug("Transition[{}] {}  from state: {}".format(str(sm_data['transition']), sm_data['topic'] , enter_state), "analyse_df", )
+		#_print_debug("Transition[{}] {}  from state: {}".format(str(sm_data['transition']), sm_data['topic'] , enter_state), "analyse_df", )
 		#print("received transition {} [{}]-{}> |{}|".format(
 		#		sm_data['transition'], sm_data['timestamp'], sm_data['topic'], sm_data['payload']))
 		transitions_has_happened = True
@@ -189,13 +192,13 @@ def analyse_df(df, result_tags_list=RESULT_TAGS):
 			wake_up_test_model.reset(data=sm_data)
 			transitions_has_happened = False
 		# just check!
-		if enter_state!=wake_up_test_model.state:
-			_print_debug("\tTransition from {} ---> to {}".format(enter_state, wake_up_test_model.state), "analyse_df",)
-		elif transitions_has_happened:
-			_print_debug("\tInternal Transition from {} ---> to {}".format(enter_state, wake_up_test_model.state), "analyse_df", )
-		else:
-			_print_debug('\tError or no transition available, remainaning in state ' + enter_state, "analyse_df",)
-		_print_debug( '=======================', "analyse_df",)
+		# if enter_state!=wake_up_test_model.state:
+		# 	_print_debug("\tTransition from {} ---> to {}".format(enter_state, wake_up_test_model.state), "analyse_df",)
+		# elif transitions_has_happened:
+		# 	_print_debug("\tInternal Transition from {} ---> to {}".format(enter_state, wake_up_test_model.state), "analyse_df", )
+		# else:
+		# 	_print_debug('\tError or no transition available, remainaning in state ' + enter_state, "analyse_df",)
+		# _print_debug( '=======================', "analyse_df",)
 
 	_print_debug(function='analyse_df', msg="\n===== START PROCESSING ====")
 	dict_tagged_results = {key: dict() for key in result_tags_list}
@@ -229,10 +232,10 @@ def run_process_bag(df, topics=DEFAULT_TOPICS): # pandas dataframe
 		data = _get_data_from_topic(topic, pd_serie)
 		# _print_debug(function='run_process_bag', msg="Data decoded {}".format(data))
 
-		_print_debug(function='run_process_bag', msg="|{}|{}|{}|".format(ts, topic, data))
+		#_print_debug(function='run_process_bag', msg="|{}|{}|{}|".format(ts, topic, data))
 		datas['timestamp'].append(ts)
 		datas['topic'].append(topic)
 		datas['payload'].append(data) # str??
 
-
+	print('==========================================================')
 	return pd.DataFrame(datas)
