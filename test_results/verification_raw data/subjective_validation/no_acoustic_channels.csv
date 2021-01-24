@@ -1,0 +1,9 @@
+Question,Expert 1,Expert 2,No Expert 3,Expert 4,No Expert 5,No Expert 6,No Expert 7,No Expert 8,Expert 9
+"How often the robot can works alone and be effective without  the need of the operator attention (e.g verifying the gripper, veryfing the screws is tightned etc)",3,2,3,2,3,4,3,3,2
+How many grippers can you work in parallel in the same worksapce without being disturbed by the robot operations?,3,3,4,3,1,3,3,3,2
+How often do you need to interact with the robots to achieve a goal,2,3,2,1,4,3,3,3,4
+How do you agree with the follow statement: the requests of attention from the robot (e.g. an error) to complete the tasks are always clear,3,2,3,2,2,2,3,2,2
+"Imagine you have multiple workspace to manage at the same time, how many workspace would you feel you can control at the same time?",2,2,2,1,1,3,4,3,1
+All screws in the grippers were propertly tighted at the end ot the operations,3,3,1,4,2,4,2,1,2
+the grippers was  completed without the need of final check,3,2,1,2,2,2,1,1,2
+awarness of defects during or at the end of the process,2,1,4,3,2,4,2,1,1
